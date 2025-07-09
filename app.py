@@ -1,6 +1,7 @@
 import streamlit as st
 from utils.calculations import calculate_umbrella_salary, calculate_ltd_salary
 from utils.charts import plot_income_pie, plot_net_income_bar
+from utils.export import export_to_pdf, export_to_csv
 
 st.set_page_config(page_title="IR35 Salary Calculator", layout="centered")
 
@@ -64,6 +65,36 @@ with tab2:
 
 st.markdown("## 📊 Net Income Comparison")
 st.pyplot(plot_net_income_bar(umbrella, ltd))
+
+st.markdown("---")
+st.subheader("📤 Export Your Results")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.download_button(
+        label="⬇️ Umbrella CSV",
+        data=export_to_csv(umbrella, "Umbrella"),
+        file_name="umbrella_results.csv",
+        mime="text/csv"
+    )
+
+with col2:
+    st.download_button(
+        label="⬇️ Ltd Company CSV",
+        data=export_to_csv(ltd, "Ltd"),
+        file_name="ltd_results.csv",
+        mime="text/csv"
+    )
+
+with col3:
+    st.download_button(
+        label="⬇️ Export as PDF",
+        data=export_to_pdf(umbrella, ltd),
+        file_name="ir35_summary.pdf",
+        mime="application/pdf"
+    )
+
 st.markdown("---")
 st.caption("⚖️ For guidance only. This tool does not constitute financial or tax advice.")
 
