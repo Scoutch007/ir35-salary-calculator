@@ -1,27 +1,41 @@
 def calculate_umbrella_salary(rate, rate_type='daily', days_per_week=5, weeks_per_year=46,
                               emp_pension_pct=0.0, er_pension_pct=0.0, additional_deductions=0.0):
+    # 2025/26 rates
     umbrella_margin = 25 * weeks_per_year
     employer_ni_rate = 0.138
+    employer_ni_threshold = 9100
     employee_ni_threshold = 12570
+    ni_12_rate_limit = 50270
     employee_ni_rate = 0.12
     employee_ni_upper_rate = 0.02
     personal_allowance = 12570
-    income_tax_bands = [(12570, 0.0), (50270, 0.20), (125140, 0.40)]
 
+    income_tax_bands = [
+        (personal_allowance, 0.0),   # £0–12,570
+        (50270, 0.20),               # £12,571–50,270
+        (125140, 0.40),              # £50,271–125,140
+        (float('inf'), 0.45)         # over £125,140
+    ]
+
+    # Calculate gross income
     if rate_type == 'daily':
         annual_contract_income = rate * days_per_week * weeks_per_year
     else:
         annual_contract_income = rate * 8 * days_per_week * weeks_per_year
 
-    employer_ni = annual_contract_income * employer_ni_rate
+    # Employer side
+    employer_ni = max(0, annual_contract_income - employer_ni_threshold) * employer_ni_rate
     employer_pension = annual_contract_income * (er_pension_pct / 100.0)
+
+    # Employee side (adjusted gross)
     adjusted_gross = annual_contract_income - employer_ni - umbrella_margin + employer_pension
     employee_pension = adjusted_gross * (emp_pension_pct / 100.0)
     taxable_income = max(0, adjusted_gross - personal_allowance - employee_pension)
 
+    # Income Tax Calculation
     tax_due = 0
-    prev_limit = 12570
-    for limit, rate_val in income_tax_bands[1:]:
+    prev_limit = 0
+    for limit, rate_val in income_tax_bands:
         if taxable_income > limit:
             tax_due += (limit - prev_limit) * rate_val
             prev_limit = limit
@@ -29,13 +43,12 @@ def calculate_umbrella_salary(rate, rate_type='daily', days_per_week=5, weeks_pe
             tax_due += (taxable_income - prev_limit) * rate_val
             break
 
+    # National Insurance (employee)
     ni_due = 0
     if adjusted_gross > employee_ni_threshold:
-        ni_taxable = adjusted_gross - employee_ni_threshold
-        ni_due = (
-            min(ni_taxable, 37700) * employee_ni_rate +
-            max(0, ni_taxable - 37700) * employee_ni_upper_rate
-        )
+        ni_band = min(ni_12_rate_limit, adjusted_gross) - employee_ni_threshold
+        ni_high = max(0, adjusted_gross - ni_12_rate_limit)
+        ni_due = (ni_band * employee_ni_rate) + (ni_high * employee_ni_upper_rate)
 
     net_pay = adjusted_gross - tax_due - ni_due - employee_pension - additional_deductions
 
@@ -51,34 +64,4 @@ def calculate_umbrella_salary(rate, rate_type='daily', days_per_week=5, weeks_pe
         "Other Deductions": round(additional_deductions, 2),
         "Net Annual Pay": round(net_pay, 2),
         "Monthly Take-Home": round(net_pay / 12, 2)
-    }
-
-
-def calculate_ltd_salary(rate, rate_type='daily', days_per_week=5, weeks_per_year=46,
-                         salary=12000, dividend_tax_rate=0.0875):
-    corp_tax_rate = 0.19
-    if rate_type == 'daily':
-        annual_income = rate * days_per_week * weeks_per_year
-    else:
-        annual_income = rate * 8 * days_per_week * weeks_per_year
-
-    corp_expenses = salary
-    profit_before_tax = annual_income - corp_expenses
-    corporation_tax = profit_before_tax * corp_tax_rate
-    post_tax_profit = profit_before_tax - corporation_tax
-
-    dividends = post_tax_profit
-    dividend_tax = dividends * dividend_tax_rate
-    net_dividends = dividends - dividend_tax
-
-    total_net = salary + net_dividends
-
-    return {
-        "Annual Contract Income": round(annual_income, 2),
-        "Salary": round(salary, 2),
-        "Corporation Tax": round(corporation_tax, 2),
-        "Dividends (Net)": round(net_dividends, 2),
-        "Dividend Tax": round(dividend_tax, 2),
-        "Total Net Income": round(total_net, 2),
-        "Monthly Take-Home": round(total_net / 12, 2)
     }
