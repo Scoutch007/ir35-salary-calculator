@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.calculations import calculate_umbrella_salary, calculate_ltd_salary
+from utils.charts import plot_income_pie, plot_net_income_bar
 
 st.set_page_config(page_title="IR35 Salary Calculator", layout="centered")
 
@@ -42,6 +43,8 @@ with tab1:
 
     st.markdown("### Breakdown")
     st.dataframe(umbrella, use_container_width=True)
+    st.markdown("### Umbrella Income Breakdown (Pie Chart)")
+    st.pyplot(plot_income_pie(umbrella, "Umbrella"))
 
 with tab2:
     st.subheader("Outside IR35 via Ltd Company")
@@ -56,7 +59,11 @@ with tab2:
 
     st.markdown("### Breakdown")
     st.dataframe(ltd, use_container_width=True)
+    st.markdown("### Ltd Company Income Breakdown (Pie Chart)")
+    st.pyplot(plot_income_pie(ltd, "Ltd"))
 
+st.markdown("## 📊 Net Income Comparison")
+st.pyplot(plot_net_income_bar(umbrella, ltd))
 st.markdown("---")
 st.caption("⚖️ For guidance only. This tool does not constitute financial or tax advice.")
 
