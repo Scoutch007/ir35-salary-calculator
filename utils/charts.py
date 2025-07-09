@@ -1,16 +1,42 @@
 import matplotlib.pyplot as plt
+import pandas as pd
 
-def create_pie_chart(data: dict, labels: list[str]):
-    values = [data.get(label, 0) for label in labels]
+
+def plot_income_pie(data: dict, model: str):
+    labels = []
+    values = []
+
+    if model == "Umbrella":
+        labels = ["Take-Home Pay", "Income Tax", "Employee NI", "Employee Pension", "Other Deductions"]
+        values = [
+            data["Net Income"],
+            data["Tax"],
+            data["Employee NI"],
+            data["Employee Pension"],
+            data["Additional Deductions"]
+        ]
+    elif model == "Ltd":
+        labels = ["Take-Home Pay", "Corporation Tax", "Dividend Tax"]
+        values = [
+            data["Total Net Income"],
+            data["Corporation Tax"],
+            data["Dividend Tax"]
+        ]
 
     fig, ax = plt.subplots()
-    ax.pie(values, labels=labels, autopct='%1.1f%%', startangle=90)
-    ax.axis('equal')
+    ax.pie(values, labels=labels, autopct="%1.1f%%", startangle=90)
+    ax.axis("equal")
     return fig
 
-def create_bar_chart(categories: list[str], values: list[float], title=""):
+
+def plot_net_income_bar(umbrella_data: dict, ltd_data: dict):
+    labels = ["Umbrella", "Ltd Company"]
+    values = [umbrella_data["Net Income"], ltd_data["Total Net Income"]]
+
+    df = pd.DataFrame({"Model": labels, "Net Income": values})
+
     fig, ax = plt.subplots()
-    ax.bar(categories, values, color=["#8888ff", "#44cc44", "#ffaa00"])
-    ax.set_ylabel("£ per Year")
-    ax.set_title(title)
+    ax.bar(df["Model"], df["Net Income"], color=["#1f77b4", "#2ca02c"])
+    ax.set_ylabel("Net Income (£)")
+    ax.set_title("Net Income Comparison")
     return fig
