@@ -1,129 +1,64 @@
 import streamlit as st
-import pandas as pd
-
 from utils.calculations import calculate_umbrella_salary, calculate_ltd_salary
-from utils.charts import create_pie_chart, create_bar_chart
-from utils.pdf_generator import generate_pdf
 
-st.set_page_config(page_title="IR35 Contractor Salary Calculator", layout="centered")
+st.set_page_config(page_title="IR35 Salary Calculator", layout="centered")
 
-st.title("💼 IR35 Contractor Salary Calculator")
+st.title("💼 IR35 Umbrella & Ltd Company Salary Calculator")
+st.markdown(
+    "This calculator estimates your take-home pay based on your contract rate and IR35 status. "
+    "Supports **daily**, **hourly**, or **weekly** rates."
+)
 
-tabs = st.tabs(["Inside IR35 (Umbrella)", "Outside IR35 (Ltd Co)", "Comparison"])
+# Sidebar Inputs
+st.sidebar.header("Contract Details")
+rate = st.sidebar.number_input("Contract Rate (£)", min_value=0.0, step=10.0, value=500.0)
+rate_type = st.sidebar.radio("Rate Type", ["Daily", "Hourly", "Weekly"])
+days_per_week = st.sidebar.slider("Days per Week", 1, 7, 5)
+weeks_per_year = st.sidebar.slider("Working Weeks per Year", 1, 52, 46)
 
-# --- Common Input ---
-with st.sidebar:
-    st.header("🔧 Contract Details")
-    rate_type = st.radio("Rate Type", ["Daily", "Hourly"])
-    rate = st.number_input(f"{rate_type} Rate (£)", min_value=0.0, value=500.0)
-    days_per_week = st.slider("Days/Week", 1, 7, 5)
-    weeks_per_year = st.slider("Weeks/Year", 30, 52, 46)
-    additional_deductions = st.number_input("Other Annual Deductions (£)", 0.0, value=0.0)
+st.sidebar.header("Pension & Deductions")
+employee_pension_percent = st.sidebar.slider("Employee Pension (%)", 0.0, 10.0, 0.0)
+employer_pension_percent = st.sidebar.slider("Employer Pension (%)", 0.0, 10.0, 0.0)
+additional_deductions = st.sidebar.number_input("Other Deductions (£/year)", 0.0, 10000.0, 0.0)
 
-# --- Inside IR35 Tab ---
-with tabs[0]:
-    st.subheader("Inside IR35 via Umbrella")
+st.sidebar.header("Ltd Company Settings")
+director_salary = st.sidebar.number_input("Director Salary (£/year)", 0.0, 50000.0, 12000.0)
+dividend_tax_rate = st.sidebar.selectbox("Dividend Tax Rate", [0.0875, 0.3375, 0.3935], index=0,
+    format_func=lambda x: f"{x*100:.2f}%")
 
-    emp_pension = st.slider("Employee Pension (%)", 0.0, 10.0, 0.0, step=0.5)
-    er_pension = st.slider("Employer Pension (%)", 0.0, 5.0, 0.0, step=0.5)
+# Tabs for comparison
+tab1, tab2 = st.tabs(["🚧 Inside IR35 (Umbrella)", "🚀 Outside IR35 (Ltd Company)"])
 
-    if st.button("Calculate Umbrella Salary"):
-        umbrella = calculate_umbrella_salary(
-            rate, rate_type.lower(), days_per_week, weeks_per_year,
-            emp_pension_pct=emp_pension, er_pension_pct=er_pension,
-            additional_deductions=additional_deductions
-        )
+with tab1:
+    st.subheader("Inside IR35 via Umbrella Company")
+    umbrella = calculate_umbrella_salary(
+        rate, rate_type, days_per_week, weeks_per_year,
+        employee_pension_percent, employer_pension_percent, additional_deductions
+    )
 
-        df = pd.DataFrame(umbrella.items(), columns=["Item", "Amount (£)"])
-        st.dataframe(df, use_container_width=True)
+    st.metric("Net Income (Annual)", f"£{umbrella['Net Income']:,.2f}")
+    st.metric("Monthly Take-Home", f"£{umbrella['Monthly Take-Home']:,.2f}")
+    st.metric("Weekly Take-Home", f"£{umbrella['Weekly Take-Home']:,.2f}")
 
-        pie_labels = ["Income Tax", "Employee NI", "Employee Pension", "Other Deductions", "Net Annual Pay"]
-        fig1 = create_pie_chart(umbrella, pie_labels)
-        st.pyplot(fig1)
+    st.markdown("### Breakdown")
+    st.dataframe(umbrella, use_container_width=True)
 
-        bar_labels = ["Adjusted Gross", "Net Annual Pay"]
-        fig2 = create_bar_chart(bar_labels, [umbrella["Adjusted Gross"], umbrella["Net Annual Pay"]], title="Umbrella Overview")
-        st.pyplot(fig2)
-
-        csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Download CSV", data=csv, file_name="umbrella_breakdown.csv", mime="text/csv")
-
-        pdf_buffer = generate_pdf("Umbrella Salary Report", umbrella, model="Umbrella")
-        st.download_button("📄 Download PDF", data=pdf_buffer, file_name="umbrella_salary.pdf", mime="application/pdf")
-
-# --- Outside IR35 Tab ---
-with tabs[1]:
+with tab2:
     st.subheader("Outside IR35 via Ltd Company")
+    ltd = calculate_ltd_salary(
+        rate, rate_type, days_per_week, weeks_per_year,
+        director_salary, dividend_tax_rate
+    )
 
-    ltd_salary = st.number_input("Director's Salary (£)", value=12000.0, step=1000.0)
-    dividend_tax_rate = st.slider("Dividend Tax Rate (%)", 0.0, 50.0, 8.75, step=0.25)
+    st.metric("Total Net Income (Annual)", f"£{ltd['Total Net Income']:,.2f}")
+    st.metric("Monthly Take-Home", f"£{ltd['Monthly Take-Home']:,.2f}")
+    st.metric("Weekly Take-Home", f"£{ltd['Weekly Take-Home']:,.2f}")
 
-    if st.button("Calculate Ltd Company Salary"):
-        ltd = calculate_ltd_salary(
-            rate, rate_type.lower(), days_per_week, weeks_per_year,
-            salary=ltd_salary, dividend_tax_rate=dividend_tax_rate / 100.0
-        )
+    st.markdown("### Breakdown")
+    st.dataframe(ltd, use_container_width=True)
 
-        df2 = pd.DataFrame(ltd.items(), columns=["Item", "Amount (£)"])
-        st.dataframe(df2, use_container_width=True)
-
-        pie_labels_ltd = ["Corporation Tax", "Dividend Tax", "Salary", "Dividends (Net)"]
-        fig3 = create_pie_chart(ltd, pie_labels_ltd)
-        st.pyplot(fig3)
-
-        bar_labels = ["Salary", "Total Net Income"]
-        fig4 = create_bar_chart(bar_labels, [ltd["Salary"], ltd["Total Net Income"]], title="Ltd Co Overview")
-        st.pyplot(fig4)
-
-        csv2 = df2.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Download CSV", data=csv2, file_name="ltd_breakdown.csv", mime="text/csv")
-
-        pdf_buffer = generate_pdf("Ltd Company Salary Report", ltd, model="Ltd Company")
-        st.download_button("📄 Download PDF", data=pdf_buffer, file_name="ltd_salary.pdf", mime="application/pdf")
-
-# --- Comparison Tab ---
-with tabs[2]:
-    st.subheader("Umbrella vs Ltd Company: Net Pay Comparison")
-
-    if st.button("Compare Both Models"):
-        umbrella = calculate_umbrella_salary(
-            rate, rate_type.lower(), days_per_week, weeks_per_year,
-            emp_pension_pct=emp_pension, er_pension_pct=er_pension,
-            additional_deductions=additional_deductions
-        )
-        ltd = calculate_ltd_salary(
-            rate, rate_type.lower(), days_per_week, weeks_per_year,
-            salary=ltd_salary, dividend_tax_rate=dividend_tax_rate / 100.0
-        )
-
-        st.markdown("### 📊 Summary Table")
-        comp_data = {
-            "Model": ["Umbrella", "Ltd Company"],
-            "Net Annual (£)": [umbrella["Net Annual Pay"], ltd["Total Net Income"]],
-            "Monthly Take-Home (£)": [umbrella["Monthly Take-Home"], ltd["Monthly Take-Home"]],
-        }
-        df_comp = pd.DataFrame(comp_data)
-        st.dataframe(df_comp, use_container_width=True)
-
-        fig_comp = create_bar_chart(
-            ["Umbrella", "Ltd Company"],
-            [umbrella["Net Annual Pay"], ltd["Total Net Income"]],
-            title="Net Annual Income Comparison"
-        )
-        st.pyplot(fig_comp)
-
-        csv_comp = df_comp.to_csv(index=False).encode("utf-8")
-        st.download_button("📥 Download Comparison CSV", data=csv_comp, file_name="comparison.csv", mime="text/csv")
-
-        # Merge umbrella and ltd into one dict for PDF export
-        pdf_data = {
-            "Umbrella Net Pay": umbrella["Net Annual Pay"],
-            "Ltd Co Net Pay": ltd["Total Net Income"],
-            "Umbrella Monthly": umbrella["Monthly Take-Home"],
-            "Ltd Monthly": ltd["Monthly Take-Home"],
-        }
-        pdf_buffer = generate_pdf("Umbrella vs Ltd Summary", pdf_data, model="Comparison")
-        st.download_button("📄 Download Comparison PDF", data=pdf_buffer, file_name="comparison.pdf", mime="application/pdf")
+st.markdown("---")
+st.caption("⚖️ For guidance only. This tool does not constitute financial or tax advice.")
 
 # --- Footer ---
 st.markdown("""<hr style='margin-top:2em;margin-bottom:1em'>
