@@ -5,7 +5,7 @@ def calculate_umbrella_salary(rate, rate_type='daily', days_per_week=5, weeks_pe
     if rate_type == 'daily':
         annual_contract_income = rate * days_per_week * weeks_per_year
     elif rate_type == 'hourly':
-        annual_contract_income = rate * 8 * days_per_week * weeks_per_year
+        annual_contract_income = rate * 7.5 * days_per_week * weeks_per_year
     else:  # weekly
         annual_contract_income = rate * weeks_per_year
 
