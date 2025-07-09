@@ -100,3 +100,50 @@ if st.button("Calculate"):
     st.subheader("📊 Salary Breakdown")
     df_result = pd.DataFrame(result.items(), columns=["Item", "Amount (£)"])
     st.dataframe(df_result, use_container_width=True)
+
+    # --- Pie Chart ---
+    st.markdown("### 📌 Where Your Money Goes")
+    pie_labels = [
+        "Income Tax", "Employee NI", "Employee Pension", "Other Deductions", "Net Pay"
+    ]
+    pie_values = [
+        result["Income Tax Due"],
+        result["Employee NI"],
+        result["Employee Pension Deduction"],
+        result["Other Deductions"],
+        result["Net Annual Pay"]
+    ]
+
+    fig1, ax1 = plt.subplots()
+    ax1.pie(pie_values, labels=pie_labels, autopct='%1.1f%%', startangle=90)
+    ax1.axis('equal')
+    st.pyplot(fig1)
+
+    # --- Bar Chart: Gross vs Net ---
+    st.markdown("### 💰 Gross vs Net Comparison")
+    bar_labels = ["Gross After Deductions", "Net Pay"]
+    bar_values = [
+        result["Gross After Employer Deductions"],
+        result["Net Annual Pay"]
+    ]
+    fig2, ax2 = plt.subplots()
+    ax2.bar(bar_labels, bar_values, color=["#8888ff", "#44cc44"])
+    ax2.set_ylabel("£ per Year")
+    st.pyplot(fig2)
+
+    # --- CSV Export ---
+    st.markdown("### 📤 Export Results")
+    csv = df_result.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="Download as CSV",
+        data=csv,
+        file_name='ir35_salary_breakdown.csv',
+        mime='text/csv'
+    )
+    
+# --- Footer ---
+st.markdown("""<hr style='margin-top:2em;margin-bottom:1em'>
+<div style='text-align:center;color:gray;'>
+Built with ❤️ using Streamlit | © 2025 scoutch007
+</div>
+""", unsafe_allow_html=True)
