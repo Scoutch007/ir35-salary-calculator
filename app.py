@@ -60,3 +60,43 @@ def calculate_salary(rate, rate_type='daily', days_per_week=5, weeks_per_year=46
         "Net Annual Pay": round(net_pay, 2),
         "Monthly Take-Home": round(net_pay / 12, 2)
     }
+
+# --- Streamlit Interface ---
+st.title("💼 Contractor Salary Calculator (Inside IR35 via Umbrella)")
+
+st.markdown("""
+This calculator estimates your **net take-home pay** based on your contract rate, pension contributions, and common deductions when working **inside IR35** via an umbrella company.
+""")
+
+# --- Session state defaults ---
+if 'rate_type' not in st.session_state:
+    st.session_state.rate_type = 'Daily'
+
+# --- Inputs ---
+col1, col2 = st.columns(2)
+with col1:
+    rate_type = st.radio("Rate Type", ['Daily', 'Hourly'], key='rate_type')
+    rate = st.number_input(f"{rate_type} Rate (£)", min_value=0.0, value=500.0)
+    emp_pension_pct = st.slider("Employee Pension (%)", 0.0, 10.0, 0.0, step=0.5)
+    er_pension_pct = st.slider("Employer Pension (%)", 0.0, 5.0, 0.0, step=0.5)
+
+with col2:
+    days_per_week = st.slider("Working Days/Week", 1, 7, 5)
+    weeks_per_year = st.slider("Working Weeks/Year", 30, 52, 46)
+    additional_deductions = st.number_input("Other Annual Deductions (£)", min_value=0.0, value=0.0, step=100.0)
+
+# --- Calculate ---
+if st.button("Calculate"):
+    result = calculate_salary(
+        rate=rate,
+        rate_type=rate_type.lower(),
+        days_per_week=days_per_week,
+        weeks_per_year=weeks_per_year,
+        emp_pension_pct=emp_pension_pct,
+        er_pension_pct=er_pension_pct,
+        additional_deductions=additional_deductions
+    )
+
+    st.subheader("📊 Salary Breakdown")
+    df_result = pd.DataFrame(result.items(), columns=["Item", "Amount (£)"])
+    st.dataframe(df_result, use_container_width=True)
