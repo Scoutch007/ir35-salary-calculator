@@ -36,6 +36,7 @@ def calculate_ltd_salary(rate, rate_type='daily', days_per_week=5, weeks_per_yea
 
     total_net_income = net_dividends + salary
     monthly_take_home = total_net_income / 12
+    weekly_take_home = net_income / weeks_per_year
 
     return {
         "Gross Contract Income": round(gross_income, 2),
@@ -47,5 +48,6 @@ def calculate_ltd_salary(rate, rate_type='daily', days_per_week=5, weeks_per_yea
         "Dividend Tax": round(dividend_tax, 2),
         "Dividends (Net)": round(net_dividends, 2),
         "Total Net Income": round(total_net_income, 2),
-        "Monthly Take-Home": round(monthly_take_home, 2)
+        "Monthly Take-Home": round(monthly_take_home, 2),
+         "Weekly Take-Home": round(weekly_take_home, 2)
     }
